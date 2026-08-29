@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+build/
+dist/
+
+# Env / secrets
+.env
+*.key.json
+service-account*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Data (el corpus fuente y artefactos de índice no se versionan por defecto)
+data/corpus/*
+!data/corpus/.gitkeep
+data/index/
+*.faiss
