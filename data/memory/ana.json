@@ -1,0 +1,35 @@
+{
+  "user_id": "ana",
+  "declared_tolerance": "moderate",
+  "horizon_years": 10,
+  "goals": [
+    "comprar una casa",
+    "jubilación"
+  ],
+  "observed_patterns": [
+    {
+      "key": "loss_aversion",
+      "pattern": "Aversión aguda a las pérdidas de corto plazo: quiere vender en cuanto ve números rojos.",
+      "evidence": [
+        "sesión 2 (bull con retroceso): pidió vender ante una caída del 5%",
+        "sesión 4 (volatilidad): ansiedad, quería mover todo a efectivo"
+      ],
+      "confidence": 0.7
+    },
+    {
+      "key": "horizon_amnesia",
+      "pattern": "Bajo estrés razona a semanas, olvidando que su horizonte declarado es de 10 años.",
+      "evidence": [
+        "sesión 4: preguntó por el valor de su cartera 'este mes' tres veces"
+      ],
+      "confidence": 0.4
+    }
+  ],
+  "declared_observed_gap": "Se declara moderada pero actúa como conservadora bajo estrés. Su tolerancia declarada describe cómo quiere verse, no cómo decide cuando el mercado cae.",
+  "agent_strategy_note": "Confrontarla con su horizonte ANTES de que pida vender, no después. Anticipar el impulso y nombrarlo. Recordarle por qué entró, no solo cuánto ha caído.",
+  "sessions_count": 4,
+  "corrections_received": [
+    "sesión 3: 'no me trates como si fuera principiante, entiendo el riesgo'"
+  ],
+  "last_updated": "2026-08-29T23:40:47.685940Z"
+}

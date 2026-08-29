@@ -1,0 +1,32 @@
+{
+  "user_id": "beto",
+  "declared_tolerance": "aggressive",
+  "horizon_years": 5,
+  "goals": [
+    "maximizar rentabilidad"
+  ],
+  "observed_patterns": [
+    {
+      "key": "fomo_concentration",
+      "pattern": "Persigue la emoción del alza y tiende a concentrar todo en el activo que más sube.",
+      "evidence": [
+        "sesión 1 (bull): quiso concentrar toda la cartera en TECHX",
+        "sesión 3: preguntó por 'el que más está subiendo ahora'"
+      ],
+      "confidence": 0.75
+    },
+    {
+      "key": "hidden_drawdown_intolerance",
+      "pattern": "Su tolerancia real al drawdown es menor de la que declara: los números rojos lo desestabilizan.",
+      "evidence": [
+        "sesión 3 (caída leve): mensajes ansiosos exigiendo explicaciones"
+      ],
+      "confidence": 0.55
+    }
+  ],
+  "declared_observed_gap": "Se declara agresivo, y en las subidas lo es. Pero las caídas lo afectan más de lo que admite: su perfil declarado autoriza un riesgo que su conducta no sostiene.",
+  "agent_strategy_note": "Frenar el FOMO sin sermonear. Dosificar la entrada en vez de prohibirla. Mostrarle el drawdown ANTES de concentrar, no después de la caída.",
+  "sessions_count": 3,
+  "corrections_received": [],
+  "last_updated": "2026-08-29T23:40:47.685958Z"
+}
