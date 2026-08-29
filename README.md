@@ -18,7 +18,8 @@ This repository is mid-build for an Aug 31, 2026 deadline. Being precise about w
 | Area | Status |
 |---|---|
 | Design & research (`docs/`) | ✅ Complete — design doc, corpus sourcing, hackathon rules |
-| Market Simulator API | ⬜ Not started |
+| Foundation (config, deps, Docker) | ✅ Complete — `steering.py`, verified model ids |
+| Market Simulator API | ✅ **Live on Cloud Run** — 43 tests, deterministic |
 | Memory (declared + observed profile) | 🟡 Skeleton only — schema is the wrong shape, needs rewrite |
 | RAG (corpus + retriever) | 🟡 `load_documents()` works; ingest/retrieve raise `NotImplementedError`; corpus not yet fetched |
 | Agent loop, tools, prompts | 🟡 Flat agent stub, no domain, no reflection step |
@@ -26,6 +27,15 @@ This repository is mid-build for an Aug 31, 2026 deadline. Being precise about w
 | Cloud Run deployment | ⬜ Not started |
 
 The sections below describe the system being built. Anything marked ⬜ or 🟡 above is not runnable yet.
+
+**Live now:** the market simulator is deployed and reachable.
+
+```bash
+curl https://jusara-market-api-904662129922.us-central1.run.app/health
+# {"status":"ok","scenarios":["bull","crash","recovery"],"days":90}
+```
+
+Data endpoints need an `X-API-Key`; `/health` does not.
 
 ---
 
