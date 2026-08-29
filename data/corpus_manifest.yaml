@@ -1,0 +1,111 @@
+# RAG corpus sources.
+#
+# The corpus is FETCHED, not written by us. A hand-authored theory file is the
+# prompt in disguise and proves nothing about retrieval. See docs/corpus_sources.md
+# for the full research, licensing analysis and rationale.
+#
+# tier A = redistributable verbatim (US federal public domain, or PSI reuse)
+# tier B = cite-only; our own summary lives in data/corpus/notes/, no copied prose
+#
+# Verified live 2026-08-29. sec.gov returns 403 to scripted clients; investor.gov
+# mirrors the same Office of Investor Education content and returns 200.
+
+sources:
+  # ── U.S. SEC / Investor.gov — public domain, 17 U.S.C. §105 ──────────────
+  - slug: asset-allocation-guide
+    title: "Beginners' Guide to Asset Allocation, Diversification, and Rebalancing"
+    org: "U.S. Securities and Exchange Commission — Office of Investor Education and Advocacy"
+    url: https://www.investor.gov/additional-resources/general-resources/publications-research/info-sheets/beginners-guide-asset
+    license: public-domain-us-gov
+    tier: A
+    lang: en
+    format: html
+
+  - slug: dont-panic-plan-it
+    title: "Don't Panic, Plan It!"
+    org: "U.S. Securities and Exchange Commission — Director's Take"
+    url: https://www.investor.gov/additional-resources/spotlight/formerdirectorlorischock-directors-take/dont-panic-plan-it
+    license: public-domain-us-gov
+    tier: A
+    lang: en
+    format: html
+    note: "Primary source when confronting a panic-seller such as Ana."
+
+  - slug: hot-stock-alert
+    title: "Investor Alert: Thinking About Investing in the Latest Hot Stock?"
+    org: "U.S. Securities and Exchange Commission"
+    url: https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-alerts/investor-alert-thinking-about-investing-latest-hot-stock-understand-significant-risks-short-term
+    license: public-domain-us-gov
+    tier: A
+    lang: en
+    format: html
+    note: "Primary source when curbing FOMO and concentration, as with Beto."
+
+  - slug: asset-allocation-basics
+    title: "Asset Allocation and Diversification"
+    org: "U.S. Securities and Exchange Commission"
+    url: https://www.investor.gov/introduction-investing/getting-started/asset-allocation
+    license: public-domain-us-gov
+    tier: A
+    lang: en
+    format: html
+
+  - slug: what-is-risk
+    title: "What is Risk?"
+    org: "U.S. Securities and Exchange Commission"
+    url: https://www.investor.gov/introduction-investing/investing-basics/what-risk
+    license: public-domain-us-gov
+    tier: A
+    lang: en
+    format: html
+
+  - slug: dollar-cost-averaging
+    title: "Dollar Cost Averaging"
+    org: "U.S. Securities and Exchange Commission — Glossary"
+    url: https://www.investor.gov/introduction-investing/investing-basics/glossary/dollar-cost-averaging
+    license: public-domain-us-gov
+    tier: A
+    lang: en
+    format: html
+
+  - slug: diversification-glossary
+    title: "Diversification"
+    org: "U.S. Securities and Exchange Commission — Glossary"
+    url: https://www.investor.gov/introduction-investing/investing-basics/glossary/diversification
+    license: public-domain-us-gov
+    tier: A
+    lang: en
+    format: html
+
+  # ── CNMV Spain — PSI reuse with attribution, Ley 37/2007 ─────────────────
+  - slug: cnmv-perfil-inversor
+    title: "Guía rápida: Conozca su perfil como inversor"
+    org: "Comisión Nacional del Mercado de Valores (España)"
+    url: https://www.cnmv.es/DocPortal/Publicaciones/Fichas/GR12_Perfil_Inversor.pdf
+    license: psi-reuse-attribution
+    tier: A
+    lang: es
+    format: pdf
+    note: >
+      The keystone. This is the official instrument that PRODUCES a declared
+      risk profile — the exact thing our thesis interrogates. Lets the agent
+      quote the regulator's own definition of "moderado" and then show that the
+      user's behaviour does not match it.
+
+  - slug: cnmv-fondos-inversion
+    title: "Los fondos de inversión y la inversión colectiva"
+    org: "Comisión Nacional del Mercado de Valores (España)"
+    url: https://www.cnmv.es/DocPortal/Publicaciones/Guias/Los_fondos_de_inversion.pdf
+    license: psi-reuse-attribution
+    tier: A
+    lang: es
+    format: pdf
+
+  - slug: cnmv-mercado-valores
+    title: "El mercado de valores y los productos de inversión"
+    org: "Comisión Nacional del Mercado de Valores (España)"
+    url: https://www.cnmv.es/DocPortal/Publicaciones/Guias/ManualUniversitarios.pdf
+    license: psi-reuse-attribution
+    tier: A
+    lang: es
+    format: pdf
