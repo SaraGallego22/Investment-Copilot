@@ -10,7 +10,14 @@ from google.adk.agents import Agent
 
 from . import steering
 from .prompts import ROOT_AGENT_INSTRUCTIONS
-from .tools.memory_tool import get_user_profile, update_user_profile
+from .tools.memory_tool import (
+    get_user_profile,
+    record_contradiction,
+    record_correction,
+    record_observation,
+    set_declared_profile,
+    update_profile_synthesis,
+)
 from .tools.rag_tool import retrieve_context
 
 root_agent = Agent(
@@ -18,5 +25,13 @@ root_agent = Agent(
     model=steering.MODEL_DEFAULT,
     description="Compañero colaborativo con memoria persistente y RAG.",
     instruction=ROOT_AGENT_INSTRUCTIONS,
-    tools=[retrieve_context, get_user_profile, update_user_profile],
+    tools=[
+        retrieve_context,
+        get_user_profile,
+        set_declared_profile,
+        record_observation,
+        record_contradiction,
+        record_correction,
+        update_profile_synthesis,
+    ],
 )
