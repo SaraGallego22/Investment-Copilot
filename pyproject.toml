@@ -1,19 +1,25 @@
 [project]
-name = "collaborative-partner"
+name = "jusara"
 version = "0.1.0"
-description = "Agente con memoria persistente y RAG — All Things Agentic Hackathon, track The Collaborative Partner"
+description = "JUSARA — an investment copilot that learns the gap between the risk profile you declare and the one your behavior reveals. All Things Agentic Hackathon, Collaborative Partner track."
 requires-python = ">=3.11"
 dependencies = [
-    "google-adk",
-    "google-cloud-firestore",
-    "google-cloud-aiplatform",
-    "python-dotenv",
+    "google-adk>=2.8",
+    "google-genai>=2.20",
+    "google-cloud-firestore>=2.29",
+    "pydantic>=2.10",
+    "python-dotenv>=1.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "httpx>=0.28",
+    "pypdf>=5.1",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-asyncio",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
 ]
 
 [build-system]
@@ -21,4 +27,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["collaborative_partner*"]
+# market_api is a separate deployable service but must still be packaged,
+# otherwise its Docker build cannot import it.
+include = ["collaborative_partner*", "market_api*", "web*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::UserWarning",
+]

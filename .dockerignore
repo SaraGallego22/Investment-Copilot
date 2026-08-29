@@ -1,0 +1,11 @@
+.venv/
+.git/
+.claude/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+docs/
+tests/
+market_api/
+.env

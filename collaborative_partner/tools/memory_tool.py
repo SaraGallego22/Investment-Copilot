@@ -4,15 +4,26 @@ Separadas deliberadamente de `rag_tool.py` — ver CLAUDE.md, "El
 diferenciador que no se puede perder".
 """
 
+from functools import lru_cache
+
 from ..memory.store import MemoryStore
 
-_store = MemoryStore()
+
+@lru_cache(maxsize=1)
+def _get_store() -> MemoryStore:
+    """Build the store on first use, not at import time.
+
+    Instantiating it at module level ran ``firestore.Client()`` during
+    ``import collaborative_partner``, so the whole package — and every test
+    that touched it — crashed on machines without GCP credentials.
+    """
+    return MemoryStore()
 
 
 def get_user_profile(user_id: str) -> dict:
     """Devuelve el perfil persistido del usuario (preferencias, puntos
     débiles, notas de sesiones anteriores)."""
-    return vars(_store.get_profile(user_id))
+    return vars(_get_store().get_profile(user_id))
 
 
 def update_user_profile(
@@ -27,12 +38,12 @@ def update_user_profile(
     explícitamente, para que la personalización persista a la sesión
     siguiente.
     """
-    profile = _store.get_profile(user_id)
+    profile = _get_store().get_profile(user_id)
     if preferences:
         profile.preferences.update(preferences)
     if weak_points:
         profile.weak_points = sorted(set(profile.weak_points) | set(weak_points))
     if notes:
         profile.notes.extend(notes)
-    _store.save_profile(profile)
+    _get_store().save_profile(profile)
     return vars(profile)

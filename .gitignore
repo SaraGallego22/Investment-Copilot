@@ -22,8 +22,10 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Data (el corpus fuente y artefactos de índice no se versionan por defecto)
-data/corpus/*
-!data/corpus/.gitkeep
-data/index/
-*.faiss
+# Data
+# The RAG corpus, its embeddings index and the seeded user profiles ARE
+# committed on purpose: they are the knowledge base and the demo fixtures.
+# Judges clone this repo and must get a working system, so excluding them
+# would ship an empty agent. Only local scratch is ignored.
+data/**/.cache/
+*.tmp
