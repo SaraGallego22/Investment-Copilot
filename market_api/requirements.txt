@@ -1,0 +1,5 @@
+# Pinned minimal runtime for the market simulator container.
+# Deliberately does NOT include google-adk / google-genai: this service does
+# no AI work, and keeping it lean keeps the image small and cold starts fast.
+fastapi>=0.115
+uvicorn[standard]>=0.32
