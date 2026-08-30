@@ -171,7 +171,9 @@
     background:var(--ground);border:1px solid var(--hair);
     border-radius:var(--radius);padding:20px 20px 16px;margin-bottom:26px;
   }
-  .meter{position:relative;height:150px;margin:6px 0 4px}
+  /* Track geometry is fixed in px so positions can be composited transforms
+     rather than animated `top`/`height`, which would reflow the panel. */
+  .meter{position:relative;height:150px;margin:6px 0 4px;--inset:8px;--track:134px}
   .axis{position:absolute;left:76px;top:8px;bottom:8px;width:2px;
     background:linear-gradient(var(--hair),var(--hair))}
   .tick{position:absolute;left:0;width:100%;display:flex;align-items:center;gap:10px;
@@ -179,8 +181,11 @@
   .tick span{width:66px;text-align:right;font-size:11px;color:var(--faint)}
   .tick::after{content:"";width:7px;height:1px;background:var(--hair);margin-left:4px}
 
-  .marker{position:absolute;left:70px;display:flex;align-items:center;gap:10px;
-    transform:translateY(-50%);transition:top .8s cubic-bezier(.34,1.2,.36,1)}
+  /* Ease-out-expo. The marker reports a measured position: an overshoot would
+     display a value that is not true for a few frames, which on a chart about
+     someone's risk profile is a correctness problem, not a style one. */
+  .marker{position:absolute;left:70px;top:0;display:flex;align-items:center;gap:10px;
+    will-change:transform;transition:transform .7s cubic-bezier(.16,1,.3,1)}
   .marker .dot{width:15px;height:15px;border-radius:50%;flex-shrink:0}
   .marker .cap{font-size:11px;white-space:nowrap;font-weight:500}
   .m-declared .dot{border:2px solid var(--declared);background:var(--surface)}
@@ -189,8 +194,9 @@
     box-shadow:0 0 0 5px var(--observed-soft)}
   .m-observed .cap{color:var(--observed)}
 
-  .span{position:absolute;left:76px;width:2px;background:var(--observed);
-    opacity:.28;transition:top .8s cubic-bezier(.34,1.2,.36,1),height .8s cubic-bezier(.34,1.2,.36,1)}
+  .span{position:absolute;left:76px;width:2px;top:var(--inset);height:var(--track);
+    background:var(--observed);opacity:.28;transform-origin:top;
+    will-change:transform;transition:transform .7s cubic-bezier(.16,1,.3,1)}
 
   .gapline{font-size:var(--fs-micro);color:var(--muted);margin:12px 0 0;
     padding-top:12px;border-top:1px solid var(--hair)}
@@ -203,8 +209,9 @@
   .pkey{font-family:var(--mono);font-size:var(--fs-micro);color:var(--observed)}
   .pconf{font-family:var(--mono);font-size:var(--fs-micro);color:var(--muted)}
   .bar{height:3px;background:var(--hair);border-radius:99px;margin:9px 0 10px;overflow:hidden}
-  .bar i{display:block;height:100%;background:var(--observed);border-radius:99px;
-    transition:width .8s cubic-bezier(.34,1.2,.36,1)}
+  .bar i{display:block;height:100%;width:100%;background:var(--observed);
+    border-radius:99px;transform-origin:left;
+    transition:transform .7s cubic-bezier(.16,1,.3,1)}
   .pattern p{margin:0;font-size:var(--fs-micro);color:var(--muted)}
   .ev{font-size:11px;color:var(--faint);margin-top:7px;padding-left:12px;
     position:relative;line-height:1.5}
@@ -343,11 +350,14 @@ function observedAt(p){
 
 const TOLERANCE_ES = {conservative:"conservador", moderate:"moderado", aggressive:"agresivo"};
 
+const TRACK = {inset: 8, height: 134};   // must match .meter in the stylesheet
+const atPx = (v) => TRACK.inset + (1 - v) * TRACK.height;   // axis runs bottom-up
+
 function meter(p){
   const dec = DECLARED_AT[p.declared_tolerance] ?? 0.5;
   const obs = observedAt(p);
-  const y = (v) => `${(1 - v) * 100}%`;          // axis runs bottom-up
-  const top = Math.min(dec, obs), height = Math.abs(dec - obs);
+  const top = atPx(Math.max(dec, obs));
+  const gap = Math.abs(atPx(dec) - atPx(obs));
   const drift = obs < dec ? "más conservadora" : "más arriesgada";
   const pts = Math.round(Math.abs(dec - obs) * 100);
 
@@ -356,12 +366,12 @@ function meter(p){
       <div class="meter">
         <div class="axis"></div>
         ${TICKS.map(([name, v]) =>
-          `<div class="tick" style="top:${y(v)}"><span>${name}</span></div>`).join("")}
-        <div class="span" style="top:${y(top + height)};height:${height * 100}%"></div>
-        <div class="marker m-declared" style="top:${y(dec)}">
+          `<div class="tick" style="top:${atPx(v)}px"><span>${name}</span></div>`).join("")}
+        <div class="span" style="transform:translateY(${top - TRACK.inset}px) scaleY(${gap / TRACK.height})"></div>
+        <div class="marker m-declared" style="transform:translateY(calc(${atPx(dec)}px - 50%))">
           <div class="dot"></div><div class="cap">Declarado</div>
         </div>
-        <div class="marker m-observed" style="top:${y(obs)}">
+        <div class="marker m-observed" style="transform:translateY(calc(${atPx(obs)}px - 50%))">
           <div class="dot"></div><div class="cap">Observado</div>
         </div>
       </div>
@@ -419,7 +429,7 @@ function renderProfile(p, changed = []){
           <span class="pkey">${pt.key}</span>
           <span class="pconf">${pt.confidence.toFixed(2)}</span>
         </div>
-        <div class="bar"><i style="width:${Math.round(pt.confidence*100)}%"></i></div>
+        <div class="bar"><i style="transform:scaleX(${pt.confidence})"></i></div>
         <p>${escapeHtml(pt.pattern)}</p>
         ${pt.evidence.map(e => `<div class="ev">${escapeHtml(e)}</div>`).join("")}
       </div>`).join("") || `<p style="color:var(--faint);font-size:var(--fs-micro)">Sin patrones todavía.</p>`}
