@@ -226,3 +226,28 @@ def test_prompt_carries_both_confrontation_examples():
 
     assert "Ana" in p and "Beto" in p
     assert "Vanguard" in p, "Beto's advice must stay grounded in the real finding"
+
+
+# ── web layer ──────────────────────────────────────────────────────────────
+
+
+def test_streaming_route_exists():
+    """The page uses the streaming endpoint; a buffered 60s response died on
+    any network that drops idle connections."""
+    from web.app import app as web_app
+
+    paths = {r.path for r in web_app.routes if hasattr(r, "path")}
+    assert "/api/chat/stream" in paths
+    assert "/api/chat" in paths, "the buffered endpoint stays for scripts and tests"
+
+
+def test_every_agent_tool_is_mapped_to_a_system():
+    """The UI colours each tool chip by system. An unmapped tool renders as a
+    generic chip, quietly hiding which of the three systems was consulted —
+    which is the one thing the UI exists to show."""
+    from collaborative_partner import root_agent
+    from web.app import SYSTEM_OF
+
+    for tool in root_agent.tools:
+        assert tool.__name__ in SYSTEM_OF, f"{tool.__name__} missing from SYSTEM_OF"
+        assert SYSTEM_OF[tool.__name__] in {"memory", "rag", "market"}

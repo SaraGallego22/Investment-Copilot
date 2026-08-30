@@ -206,32 +206,71 @@ async function send(){
   $("input").value = "";
 
   bubble("me", escapeHtml(text));
-  const thinking = bubble("bot", `<span class="quiet">pensando…</span>`);
+  const bot = bubble("bot", `<div class="trace"></div><span class="quiet">consultando…</span>`);
+  const trace = bot.querySelector(".trace");
+  const seenTools = new Set();
+  const cites = new Map();
+  let reply = "";
+
+  const paint = () => {
+    const citeHtml = [...cites.values()].map(c =>
+      `<div class="cite">${escapeHtml(c.source_org)}${c.section ? " — " + escapeHtml(c.section) : ""}
+        ${c.source_url ? `<a href="${c.source_url}" target="_blank" rel="noopener">↗</a>` : ""}</div>`).join("");
+    bot.innerHTML = `<div class="trace">${trace.innerHTML}</div>` +
+      (reply ? markdown(reply) : `<span class="quiet">consultando…</span>`) + citeHtml;
+  };
 
   try {
-    const res = await fetch("/api/chat", {
+    // Server-sent events, not a single buffered response. A turn takes 30-60s
+    // and a fetch that receives nothing for that long dies on any network that
+    // drops idle connections — which is exactly what produced a bare
+    // "TypeError: Failed to fetch" with no request ever reaching the server.
+    const res = await fetch("/api/chat/stream", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({user_id: currentUser, message: text}),
     });
-    const data = await res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const chips = [...new Set(data.tools_used)].map(t => {
-      const sys = SYSTEM_OF[t] || "tool";
-      return `<span class="chip c-${sys}">${sys} · ${t}</span>`;
-    }).join("");
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
 
-    const cites = [...new Map(data.citations.map(c => [c.source_org, c])).values()]
-      .map(c => `<div class="cite">${c.source_org}${c.section ? " — " + c.section : ""}
-        ${c.source_url ? `<a href="${c.source_url}" target="_blank" rel="noopener">↗</a>` : ""}</div>`)
-      .join("");
+    for (;;) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream: true});
 
-    thinking.innerHTML =
-      `<div class="trace">${chips}</div>${markdown(data.reply)}${cites}`;
+      let cut;
+      while ((cut = buffer.indexOf("
 
-    if (data.profile) renderProfile(data.profile, diffKeys(lastProfile, data.profile));
+")) !== -1) {
+        const chunk = buffer.slice(0, cut).trim();
+        buffer = buffer.slice(cut + 2);
+        if (!chunk.startsWith("data:")) continue;
+
+        const ev = JSON.parse(chunk.slice(5).trim());
+        if (ev.type === "tool" && !seenTools.has(ev.name)) {
+          seenTools.add(ev.name);
+          trace.insertAdjacentHTML("beforeend",
+            `<span class="chip c-${ev.system}">${ev.system} · ${ev.name}</span>`);
+          paint();
+        } else if (ev.type === "citation") {
+          cites.set(ev.source_org, ev);
+        } else if (ev.type === "reply") {
+          reply = ev.text; paint();
+        } else if (ev.type === "profile" && ev.profile) {
+          renderProfile(ev.profile, diffKeys(lastProfile, ev.profile));
+        } else if (ev.type === "error") {
+          throw new Error(ev.message);
+        }
+        $("log").scrollTop = $("log").scrollHeight;
+      }
+    }
+    paint();
   } catch (err) {
-    thinking.innerHTML = `<span style="color:var(--down)">Error: ${escapeHtml(String(err))}</span>`;
+    bot.innerHTML += `<div style="color:var(--down);margin-top:8px">
+      No se pudo completar: ${escapeHtml(String(err.message || err))}</div>`;
   } finally {
     busy = false; $("send").disabled = false;
     $("log").scrollTop = $("log").scrollHeight;
