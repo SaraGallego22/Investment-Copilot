@@ -8,23 +8,27 @@
   :root{
     --bg:#0f1115; --panel:#161a21; --line:#252b36; --text:#e6e9ef; --muted:#8b93a3;
     --memory:#c084fc; --rag:#38bdf8; --market:#fbbf24; --down:#f87171; --up:#4ade80;
+    /* Four steps, ~1.27 between each. Eight near-identical sizes read as
+       noise, and on a screen recording nothing stands out as the thing to
+       look at. */
+    --fs-micro:11px; --fs-base:14px; --fs-lead:17px; --fs-title:22px;
   }
   *{box-sizing:border-box}
-  body{margin:0;font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  body{margin:0;font:var(--fs-base)/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
        background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
   .app{display:grid;grid-template-columns:250px 1fr 380px;height:100vh}
   .panel{border-right:1px solid var(--line);overflow-y:auto;padding:18px}
   .panel:last-child{border-right:0;border-left:1px solid var(--line)}
-  h1{font-size:15px;letter-spacing:.14em;margin:0 0 4px}
-  .tag{font-size:11px;color:var(--muted);margin-bottom:22px}
-  h2{font-size:11px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;
+  h1{font-size:var(--fs-title);letter-spacing:.1em;margin:0 0 4px;font-weight:600}
+  .tag{font-size:var(--fs-micro);color:var(--muted);margin-bottom:22px}
+  h2{font-size:var(--fs-micro);letter-spacing:.09em;color:var(--muted);text-transform:uppercase;
      margin:22px 0 9px;font-weight:600}
   .user{padding:9px 11px;border:1px solid var(--line);border-radius:7px;margin-bottom:7px;
         cursor:pointer;background:transparent;color:inherit;width:100%;text-align:left;font:inherit}
   .user:hover{border-color:#3a4353}
   .user[aria-selected="true"]{border-color:var(--memory);background:#1d1626}
   .user b{display:block;text-transform:capitalize}
-  .user span{font-size:11px;color:var(--muted)}
+  .user span{font-size:var(--fs-micro);color:var(--muted)}
   select,input[type=range]{width:100%;margin-bottom:12px}
   select{background:var(--panel);color:var(--text);border:1px solid var(--line);
          border-radius:6px;padding:7px}
@@ -33,13 +37,13 @@
   .msg{max-width:82%;margin-bottom:16px;padding:12px 15px;border-radius:11px;white-space:pre-wrap}
   .me{margin-left:auto;background:#1e2530}
   .bot{background:var(--panel);border:1px solid var(--line)}
-  .bot h3{font-size:13px;margin:14px 0 6px}
+  .bot h3{font-size:var(--fs-lead);margin:16px 0 7px;font-weight:600}
   .trace{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 3px}
-  .chip{font-size:10.5px;padding:2px 8px;border-radius:99px;border:1px solid}
+  .chip{font-size:var(--fs-micro);padding:2px 8px;border-radius:99px;border:1px solid}
   .c-memory{color:var(--memory);border-color:#4c2f6b}
   .c-rag{color:var(--rag);border-color:#1e4a63}
   .c-market{color:var(--market);border-color:#5c4415}
-  .cite{font-size:11.5px;color:var(--muted);border-left:2px solid var(--rag);
+  .cite{font-size:var(--fs-micro);color:var(--muted);border-left:2px solid var(--rag);
         padding-left:9px;margin-top:8px}
   .cite a{color:var(--rag);text-decoration:none}
   .composer{display:flex;gap:9px;padding:15px 22px;border-top:1px solid var(--line)}
@@ -49,21 +53,21 @@
               padding:0 20px;font-weight:600;cursor:pointer}
   button.send:disabled{opacity:.45;cursor:default}
   .kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;
-      border-bottom:1px solid #1c212a;font-size:12.5px}
+      border-bottom:1px solid #1c212a;font-size:var(--fs-base)}
   .kv span:first-child{color:var(--muted)}
   .pattern{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:9px}
   .pattern.changed{border-color:var(--up);background:#12211a}
-  .pk{font-family:ui-monospace,monospace;font-size:11px;color:var(--memory)}
+  .pk{font-family:ui-monospace,monospace;font-size:var(--fs-micro);color:var(--memory)}
   .bar{height:4px;background:#232936;border-radius:99px;margin:7px 0 6px;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--memory)}
-  .ev{font-size:11px;color:var(--muted);margin-top:5px;padding-left:11px;position:relative}
+  .ev{font-size:var(--fs-micro);color:var(--muted);margin-top:5px;padding-left:11px;position:relative}
   .ev::before{content:"·";position:absolute;left:2px}
-  .gap{font-size:12px;background:#1a1420;border:1px solid #3a2a4a;border-radius:8px;padding:10px}
-  .note{font-size:12px;background:#141c18;border:1px solid #274034;border-radius:8px;padding:10px}
-  .quiet{color:var(--muted);font-size:12px}
+  .gap{font-size:var(--fs-base);background:#1a1420;border:1px solid #3a2a4a;border-radius:8px;padding:10px}
+  .note{font-size:var(--fs-base);background:#141c18;border:1px solid #274034;border-radius:8px;padding:10px}
+  .quiet{color:var(--muted);font-size:var(--fs-micro)}
   .flash{animation:flash 1.6s ease-out}
   @keyframes flash{0%{background:#1b3326}100%{background:transparent}}
-  .disclaimer{font-size:10.5px;color:var(--muted);padding:9px 22px;border-top:1px solid var(--line)}
+  .disclaimer{font-size:var(--fs-micro);color:var(--muted);padding:9px 22px;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -104,7 +108,7 @@
 
   <!-- ── right: memory, live ──────────────────────────────────── -->
   <div class="panel" id="memoryPanel">
-    <h1 style="letter-spacing:.09em">MEMORIA</h1>
+    <h1>MEMORIA</h1>
     <div class="tag">lo que el agente sabe de esta persona</div>
     <div id="profile" class="quiet">Selecciona un usuario.</div>
   </div>
