@@ -158,7 +158,25 @@ def test_missing_index_gives_an_actionable_error(tmp_path):
 # ── live retrieval (needs the built index and credentials) ─────────────────
 
 
-@pytest.mark.skipif(not steering.INDEX_PATH.exists(), reason="index not built")
+@pytest.fixture(scope="module")
+def live_retrieval():
+    """Skip this whole group unless the index exists AND embeddings work.
+
+    The index alone is not enough: a query still has to be embedded, which
+    needs credentials and network. Without this the suite went red on a clean
+    checkout that simply had no `.env` loaded.
+    """
+    if not steering.INDEX_PATH.exists():
+        pytest.skip("corpus index not built — run scripts/ingest_corpus.py")
+    try:
+        from collaborative_partner.rag.retriever import embed_query
+
+        embed_query("ping")
+    except Exception as exc:  # noqa: BLE001
+        pytest.skip(f"embedding API unavailable ({type(exc).__name__})")
+
+
+@pytest.mark.usefixtures("live_retrieval")
 class TestLiveRetrieval:
     def test_spanish_panic_query_finds_the_right_theory(self):
         """Ana's moment: the agent must reach the behavioural literature."""
