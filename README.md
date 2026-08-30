@@ -84,7 +84,7 @@ separates memory that *learns* from memory that merely *recalls*.
 
 ```mermaid
 flowchart TB
-    U([User]) <--> UI["Web UI · 3 panels<br/>chat | live memory | market + citation"]
+    U([User]) <--> UI["Web UI · 3 panels<br/>chat · live memory · market + citation"]
     UI <--> AG
 
     subgraph CR1["☁️ Cloud Run — jusara-agent"]
@@ -104,7 +104,7 @@ flowchart TB
     end
 
     subgraph CR2["☁️ Cloud Run — jusara-market-api"]
-        SIM["FastAPI + GBM simulator<br/>bull | crash | recovery<br/>MARKET TECHX UTILCO GOLDF"]
+        SIM["FastAPI + GBM simulator<br/>bull · crash · recovery<br/>MARKET TECHX UTILCO GOLDF"]
     end
 
     AG <-->|"read / write profile"| FS
@@ -112,6 +112,33 @@ flowchart TB
     AG -->|"retrieve + cite"| IDX
     AG -->|"HTTP · X-API-Key"| SIM
 ```
+
+### One turn, end to end
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant A as Agente
+    participant M as Memoria
+    participant R as RAG
+    participant K as Market API
+
+    U->>A: el mercado cayó, quiero vender todo
+    A->>M: get_user_profile
+    M-->>A: declara moderado · observado loss_aversion 0.7
+    A->>K: snapshot y serie del escenario
+    K-->>A: MARKET -39.7 · TECHX -55.5 · GOLDF +10.7
+    A->>R: retrieve_theory sobre venta por pánico
+    R-->>A: Odean 1998 · SEC Don't Panic, Plan It
+    A->>A: proyecta vender hoy frente a mantener
+    A-->>U: consejo anclado en su patrón, con la fuente citada
+    A->>M: record_observation y update_profile_synthesis
+```
+
+The agent never invents a price or compounds a return in its head. Every number
+comes from the simulator or from the deterministic projector; the model's job is
+judgement, not arithmetic.
 
 **Why the simulator is a separate service.** It makes the agent an HTTP client rather than a monolith,
 it lets us stress-test the agent against any market condition on demand, and it means the simulator
@@ -127,6 +154,26 @@ Two users. Opposite declared profiles. Both seeded with real session history.
 | **Declares** | moderate · 10-year horizon | aggressive · 5-year horizon |
 | **Actually does** | asked to sell on a 5% dip (s2); wanted everything in cash during volatility (s4) | wanted to concentrate in TECHX (s1); anxious messages on a mild dip (s3) |
 | **The gap** | declares moderate, acts conservative under stress | declares aggressive, but red numbers destabilize him more than he admits |
+
+### How the profile learns
+
+```mermaid
+flowchart LR
+    S2["Sesión 2<br/>pide vender con -5%"] --> P1
+    S4["Sesión 4<br/>quiere todo a efectivo"] --> P1
+    P1[["loss_aversion<br/>confianza 0.70"]]
+
+    P1 --> S5["Sesión 5 · crash -40%<br/>el agente se adelanta<br/>al impulso"]
+    S5 --> RF{{"Reflexión<br/>al cerrar la sesión"}}
+    RF --> P2[["loss_aversion<br/>confianza 0.80<br/>nueva evidencia"]]
+    P2 -.alimenta.-> S6["Sesión 6<br/>arranca distinta"]
+
+    RF -.->|"si actúa en contra<br/>del patrón"| W["record_contradiction<br/>baja la confianza"]
+```
+
+That last branch matters. A profile that could only grow more certain would be
+confirmation bias with a JSON file, not memory. Contradicting evidence lowers
+confidence, so the agent can be wrong about someone and recover.
 
 Then the **same `crash` scenario** hits both. The agent ignores the declared label and applies what it
 learned:

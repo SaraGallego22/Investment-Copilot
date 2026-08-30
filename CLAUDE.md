@@ -1,83 +1,118 @@
 # CLAUDE.md
 
-Contexto de trabajo para Claude Code en este repo. Lee también [`hackathon-agentic.md`](./hackathon-agentic.md) — es la fuente completa del contexto del hackathon; este archivo solo resume lo operativo.
+Contexto operativo para Claude Code en este repo. La descripción completa está
+en [`README.md`](./README.md); el diseño en
+[`docs/architecture.md`](./docs/architecture.md) y
+[`docs/challenge_design.md`](./docs/challenge_design.md).
 
 ## Qué es esto
 
-Proyecto para el **All Things Agentic Hackathon** (Gemini/Google Cloud). Deadline: **31 de agosto de 2026**.
+**JUSARA** — copiloto de inversión para el track *The Collaborative Partner* del
+All Things Agentic Hackathon (Google Cloud). Deadline: **31 de agosto de 2026,
+5:00 PM PT**.
 
-Track elegido: **The Collaborative Partner** — un agente conversacional multi-turno con:
-1. **Memoria persistente** entre sesiones (no solo dentro de un chat).
-2. **RAG** sobre un corpus externo.
-3. **Personalización adaptativa**: el agente aprende de correcciones del usuario y cambia su comportamiento en sesiones futuras.
+El agente aconseja pero **nunca opera**. Su tema real no es el mercado sino el
+usuario: aprende la brecha entre el perfil de riesgo que una persona **declara**
+y el que su **conducta revela**, y se lo devuelve antes de que actúe en contra
+de sí misma.
 
-### El diferenciador que no se puede perder
-No es "un chatbot con RAG". Hay que mantener **memoria y RAG como dos sistemas separados y visibles**:
-- **RAG** (`collaborative_partner/rag/`) = conocimiento externo (el corpus/documento).
-- **Memoria** (`collaborative_partner/memory/`) = el usuario (preferencias, errores recurrentes, historial de aprendizaje).
+## El diferenciador que no se puede perder
 
-Al cerrar una sesión, el agente debe escribir/actualizar un **perfil de usuario** explícito (paso de "reflexión"), y la demo debe mostrar ese perfil cambiando y afectando la sesión siguiente.
+Tres sistemas **separados y visibles**, no tres nombres para lo mismo:
 
-## Decisión pendiente (bloqueante)
+- **Memoria** (`collaborative_partner/memory/`) = el usuario. Dos capas:
+  declarada (onboarding) y observada (patrones aprendidos con confianza).
+- **RAG** (`collaborative_partner/rag/`) = el mundo. Teoría de inversión
+  descargada de SEC y CNMV, no escrita por nosotros.
+- **Market API** (`market_api/`) = el entorno. Servicio aparte en Cloud Run.
 
-Aún no se eligió **cuál** de las 5 ideas candidatas (ver sección 4 de `hackathon-agentic.md`) se construye: tutor adaptativo, compañero de lectura de documentos densos, coach de habilidades, second brain, o planificador personalizado. El código en `collaborative_partner/` está armado como esqueleto genérico con `TODO`s marcando dónde entra la decisión de dominio (tema del corpus, campos del perfil de usuario, tipo de sesión). Antes de construir features de dominio, confirmar la idea con el usuario.
+Al cerrar sesión, un agente de **reflexión** reescribe el perfil observado. Ese
+paso es lo que separa memoria que *aprende* de memoria que solo *recuerda*.
 
-## Estructura del repo
+## Restricciones verificadas — no las cambies sin comprobarlo
+
+Estas se verificaron en vivo contra el proyecto el 2026-08-29:
+
+- **`GOOGLE_CLOUD_LOCATION` debe ser `global`.** Los modelos Gemini 3.5 dan 404
+  en us-central1, us-east5, europe-west4, us-west1 y asia-northeast1.
+- **No existe un Gemini 3.5 Pro** en Vertex. La reflexión usa el mismo Flash con
+  `thinking_budget` elevado. `gemini-2.5-pro` existe pero **incumple** la regla
+  del concurso ("3.5 or newer") y descalificaría la entrega.
+- **`CLOUD_RUN_REGION` es distinto de `GOOGLE_CLOUD_LOCATION`.** `global` es un
+  endpoint válido de Vertex pero **no** una región válida de Cloud Run.
+- **`data/corpus/` y `data/index/` se commitean.** Excluirlos entregaría a los
+  jueces un agente con la base de conocimiento vacía.
+
+## Reglas de código aprendidas a golpes
+
+- **Nada de clientes en tiempo de import.** Un `firestore.Client()` a nivel de
+  módulo rompía `import collaborative_partner` en cualquier máquina sin
+  credenciales. Igual con leer config: `auth.py` leía la API key al importar y
+  el primer módulo de test que cargara fijaba la clave para toda la sesión.
+- **El `user_id` nunca es parámetro del modelo.** Sale de la sesión ADK vía
+  `ToolContext`. Cuando era argumento, el modelo se lo inventó y trató a una
+  usuaria con 4 sesiones de historial como desconocida.
+- **El modelo no hace aritmética.** Toda la matemática de cartera vive en
+  `tools/projector.py`, determinista. Un modelo componiendo retornos a 90 días
+  da un número confiado y equivocado.
+- **Toda cita lleva institución.** El retriever devuelve `source_org`, no un
+  nombre de archivo.
+
+## Estructura
 
 ```
-collaborative_partner/       # paquete del agente ADK
-  __init__.py                 # expone root_agent
-  agent.py                    # definición del agente raíz / orquestación
-  prompts.py                  # system instructions
-  tools/
-    rag_tool.py                # tool de recuperación (llama a rag/retriever.py)
-    memory_tool.py              # tool de lectura/escritura del perfil de usuario
-  memory/
-    schema.py                   # modelo del perfil de usuario (qué se recuerda)
-    store.py                    # cliente de persistencia (Firestore / Memory Bank)
-  rag/
-    ingest.py                   # chunking + indexado del corpus
-    retriever.py                # consulta al vector store
-
-data/corpus/                 # documentos fuente para RAG (no versionar contenido pesado/privado)
-scripts/
-  ingest_corpus.py             # CLI para indexar data/corpus/
-  seed_memory.py                # CLI para sembrar/inspeccionar memoria en dev
-tests/                        # pytest
-deploy/
-  Dockerfile                    # imagen para Cloud Run
-  deploy_cloud_run.sh
-docs/
-  demo_script.md                # guion de la demo (memoria + RAG + adaptación en vivo)
+collaborative_partner/       # agente ADK
+  agent.py                   # root_agent + reflection_agent
+  prompts.py                 # rol, guardrails, few-shot de la confrontación
+  steering.py                # fuente de verdad de configuración
+  memory/  schema.py         # UserProfile: capa declarada + observada
+           store.py          # JsonMemoryStore | FirestoreMemoryStore
+  rag/     ingest.py         # chunking + embeddings
+           retriever.py      # coseno + diversificación por fuente
+  tools/   market_tool.py    # cliente HTTP del simulador
+           memory_tool.py    # lectura/escritura del perfil
+           rag_tool.py       # recuperación con cita
+           projector.py      # aritmética determinista
+market_api/                  # servicio independiente (FastAPI + GBM)
+web/                         # app FastAPI + UI de 3 paneles
+data/    corpus_manifest.yaml  corpus/  index/  memory/
+scripts/ fetch_corpus · ingest_corpus · seed_memory · smoke_test_api
+cli.py                       # check · fetch-corpus · ingest · seed · run · demo
 ```
-
-## Stack técnico
-
-- **Framework de agente:** ADK (`google-adk`, https://github.com/google/adk-python).
-- **Modelos:** **Gemini Flash** por defecto; **Gemini Pro** solo para el razonamiento final complejo. No usar Pro en el loop principal sin justificarlo.
-- **Memoria persistente:** Vertex Memory Bank o Firestore (`collaborative_partner/memory/store.py` abstrae cuál).
-- **RAG:** Vertex AI Search / RAG Engine, o vector store serverless. Evitar clusters siempre encendidos.
-- **Deploy:** Cloud Run (scale-to-zero) o Agent Engine.
-
-## Convenciones de costo (del propio hackathon — respetarlas en el código)
-
-- Modelo por defecto = Flash; escalar a Pro solo puntualmente y de forma explícita.
-- Cloud Run con mínimo de instancias en 0 y techo máximo definido.
-- Vector search serverless, no clusters permanentes.
-- Guardar solo el estado esencial en memoria; comprimir/podar memorias largas.
-- Proteger cualquier endpoint público con API key/auth.
 
 ## Comandos
 
-- `pip install -e .` — instalar dependencias del paquete.
-- `python -m collaborative_partner.agent` o `adk run collaborative_partner` — correr el agente localmente (según se configure el entrypoint).
-- `python scripts/ingest_corpus.py` — indexar `data/corpus/` para RAG.
-- `pytest` — correr tests.
+```bash
+pip install -e ".[dev]"
+python cli.py check                  # modelos, market API, índice, memoria
+python cli.py fetch-corpus           # descarga SEC + CNMV
+python cli.py ingest                 # chunking + embeddings -> data/index/
+python cli.py seed                   # perfiles de ana y beto
+python cli.py demo --scenario crash  # el caso Ana vs Beto completo
+python cli.py run --user ana         # sesión interactiva
+uvicorn web.app:app --port 8080      # UI local
+uvicorn market_api.main:app --port 8081
+pytest
+```
 
-## Próximos pasos (de `hackathon-agentic.md`, sección 7)
+Deploy: `./market_api/deploy.sh` y `./deploy/deploy_cloud_run.sh`.
 
-- [ ] Elegir una de las 5 ideas candidatas.
-- [ ] Definir el esquema de memoria (`collaborative_partner/memory/schema.py`).
-- [ ] Definir el flujo de RAG (corpus, chunking, recuperación).
-- [ ] Escribir el guion de demo (`docs/demo_script.md`) que pruebe memoria + RAG + adaptación en vivo.
-- [ ] Desplegar el esqueleto en Cloud Run.
+## Desplegado
+
+| Servicio | URL |
+|---|---|
+| Agente + UI | https://jusara-agent-904662129922.us-central1.run.app |
+| Simulador | https://jusara-market-api-904662129922.us-central1.run.app |
+
+Proyecto GCP `agentic-507018`. La memoria en producción vive en Firestore,
+colección `user_profiles`.
+
+## Pendiente
+
+- [ ] Grabar el video (≤4 min, con la consola de GCP visible). Guion en
+      [`docs/demo_script.md`](./docs/demo_script.md).
+- [ ] Subirlo a YouTube **público** (no "no listado" — las reglas lo exigen).
+- [ ] Enviar en Devpost: repo, URL hosteada, descripción
+      (usar [`docs/architecture.md`](./docs/architecture.md)), diagrama.
+- [ ] Opcional (+0,4 puntos): post de blog y post social con
+      `#AllThingsAgenticHackathon`.
