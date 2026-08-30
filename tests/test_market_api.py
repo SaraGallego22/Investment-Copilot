@@ -1,8 +1,4 @@
-"""Endpoint and auth tests for the market simulator.
-
-``MARKET_API_KEY`` is set before importing the app because ``auth.py`` reads
-it at import time.
-"""
+"""Endpoint and auth tests for the market simulator."""
 
 from __future__ import annotations
 
@@ -11,14 +7,25 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-TEST_KEY = "test-key-not-a-secret"
-os.environ["MARKET_API_KEY"] = TEST_KEY
-os.environ["REQUIRE_AUTH"] = "true"
-
 from market_api.main import app  # noqa: E402
 from market_api.scenarios import HORIZON_DAYS  # noqa: E402
 
+TEST_KEY = "test-key-not-a-secret"
 HEADERS = {"X-API-Key": TEST_KEY}
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _api_key():
+    """Set the key for this module. auth.py reads it per request, so test
+    modules no longer fight over whoever imported first."""
+    previous = os.environ.get("MARKET_API_KEY")
+    os.environ["MARKET_API_KEY"] = TEST_KEY
+    os.environ["REQUIRE_AUTH"] = "true"
+    yield
+    if previous is None:
+        os.environ.pop("MARKET_API_KEY", None)
+    else:
+        os.environ["MARKET_API_KEY"] = previous
 
 
 @pytest.fixture(scope="module")

@@ -1,3 +1,5 @@
-from .agent import root_agent
+"""JUSARA — investment copilot for the Collaborative Partner track."""
 
-__all__ = ["root_agent"]
+from .agent import reflection_agent, root_agent
+
+__all__ = ["root_agent", "reflection_agent"]
