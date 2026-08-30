@@ -117,6 +117,12 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
+
+// Blank line between server-sent events. Built from char codes rather than an
+// escape: this string has been mangled twice by tooling that rewrote "\n" into
+// a real line break, which silently killed the entire script.
+const SSE_DELIM = String.fromCharCode(10) + String.fromCharCode(10);
+
 let currentUser = null;
 let lastProfile = null;
 let busy = false;
@@ -242,9 +248,7 @@ async function send(){
       buffer += decoder.decode(value, {stream: true});
 
       let cut;
-      while ((cut = buffer.indexOf("
-
-")) !== -1) {
+      while ((cut = buffer.indexOf(SSE_DELIM)) !== -1) {
         const chunk = buffer.slice(0, cut).trim();
         buffer = buffer.slice(cut + 2);
         if (!chunk.startsWith("data:")) continue;

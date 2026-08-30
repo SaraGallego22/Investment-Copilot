@@ -251,3 +251,33 @@ def test_every_agent_tool_is_mapped_to_a_system():
     for tool in root_agent.tools:
         assert tool.__name__ in SYSTEM_OF, f"{tool.__name__} missing from SYSTEM_OF"
         assert SYSTEM_OF[tool.__name__] in {"memory", "rag", "market"}
+
+
+def test_page_javascript_parses():
+    """Parse the page's inline script.
+
+    A mangled string literal once split across three lines, which is a syntax
+    error, and a syntax error kills the ENTIRE script silently: the page still
+    rendered, but no user list loaded and the send button did nothing. Nothing
+    in the Python test suite noticed, and it reached production.
+    """
+    import re
+    import shutil
+    import subprocess
+    import tempfile
+    from pathlib import Path
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available to parse the page script")
+
+    html = Path("web/static/index.html").read_text(encoding="utf-8")
+    script = re.search(r"<script>(.*?)</script>", html, re.S)
+    assert script, "the page must contain an inline script"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        js = Path(tmp) / "page.js"
+        js.write_text(script.group(1), encoding="utf-8")
+        result = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
+
+    assert result.returncode == 0, f"page script does not parse:\n{result.stderr}"
