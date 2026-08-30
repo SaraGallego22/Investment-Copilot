@@ -140,6 +140,66 @@ The agent never invents a price or compounds a return in its head. Every number
 comes from the simulator or from the deterministic projector; the model's job is
 judgement, not arithmetic.
 
+### RAG — ingested once, queried every turn
+
+```mermaid
+flowchart LR
+    subgraph ing["Ingest · offline · index committed to the repo"]
+        direction TB
+        A["17 docs in data/corpus/<br/>SEC · CNMV · cite-only research notes<br/>frontmatter: source_org · url · license · lang"]
+        B["split on ## headings<br/>paragraph-pack to 1800 chars"]
+        C["drop chunks &lt; 250 chars<br/>drop .gov banners and nav boilerplate"]
+        D["embed · gemini-embedding-001<br/>task_type RETRIEVAL_DOCUMENT · batch 16"]
+        A --> B --> C --> D --> E
+        E[["corpus_index.json<br/>233 chunks · vectors + provenance"]]
+    end
+
+    subgraph qry["Query · retrieve_theory(text) · per turn"]
+        direction TB
+        F["embed query<br/>task_type RETRIEVAL_QUERY<br/>asymmetric with ingest, on purpose"]
+        G["cosine similarity in pure Python<br/>no vector DB · no always-on cluster"]
+        H["cap 1 passage per source<br/>keeps the EN SEC text from being<br/>buried under same-language ES notes"]
+        I["top_k = 3 · every hit carries source_org + url"]
+        F --> G --> H --> I
+    end
+
+    E -. lru_cache · loaded once .-> G
+```
+
+### Memory schema — the two layers
+
+```mermaid
+classDiagram
+    class UserProfile {
+        str user_id
+        RiskTolerance declared_tolerance
+        int horizon_years
+        list~str~ goals
+        list~ObservedPattern~ observed_patterns
+        str declared_observed_gap
+        str agent_strategy_note
+        int sessions_count
+        list~str~ corrections_received
+        datetime last_updated
+        reinforce(key, evidence) ObservedPattern
+        weaken(key, evidence) ObservedPattern
+        confident_patterns(threshold) list
+    }
+    class ObservedPattern {
+        str key
+        str pattern
+        list~str~ evidence
+        float confidence
+    }
+    UserProfile "1" *-- "0..*" ObservedPattern : observed_patterns
+    note for ObservedPattern "confidence: start 0.30 · step +/- 0.10 · floor 0.05 · cap 0.95.\nThe agent asserts a pattern only at confidence >= 0.5."
+```
+
+The **declared** fields come from onboarding — the same thing a broker's risk
+questionnaire collects. The **observed** fields are written by the agent during the
+session and rewritten by the reflection step. They live in separate fields, never
+merged: that is what lets the agent show a user the gap between the two.
+
 **Why the simulator is a separate service.** It makes the agent an HTTP client rather than a monolith,
 it lets us stress-test the agent against any market condition on demand, and it means the simulator
 can evolve without touching the agent. Prices are pre-generated from a **fixed seed**, so the same
