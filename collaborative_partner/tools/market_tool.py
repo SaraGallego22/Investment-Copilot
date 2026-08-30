@@ -13,6 +13,7 @@ model gets the conclusions.
 
 from __future__ import annotations
 
+import functools
 import time
 from functools import lru_cache
 
@@ -84,6 +85,25 @@ def _summarise(prices: list[float]) -> dict:
     }
 
 
+def _guard(fn):
+    """Return a readable error to the model instead of killing the session.
+
+    A tool exception aborts the whole ADK run, so a cold container or a bad
+    ticker would end a live conversation outright. Handing the model the problem
+    lets it retry or ask.
+    """
+
+    @functools.wraps(fn)  # keeps the signature ADK introspects to build the
+    def wrapper(*args, **kwargs):  # tool declaration; without it ADK declared
+        try:                       # a no-argument tool and called it with none
+            return fn(*args, **kwargs)
+        except MarketUnavailable as exc:
+            return {"error": str(exc)}
+
+    return wrapper
+
+
+@_guard
 def get_market_snapshot(scenario: str, day: int) -> dict:
     """Current price of every asset on a given day of a scenario.
 
@@ -93,6 +113,7 @@ def get_market_snapshot(scenario: str, day: int) -> dict:
     return _get("/snapshot", scenario=scenario, day=day)
 
 
+@_guard
 def get_asset_summary(ticker: str, scenario: str, up_to_day: int | None = None) -> dict:
     """How one asset has behaved: change, drawdown, and its role.
 
@@ -106,6 +127,7 @@ def get_asset_summary(ticker: str, scenario: str, up_to_day: int | None = None) 
     return {"ticker": ticker, "scenario": scenario, "days": len(prices), **_summarise(prices)}
 
 
+@_guard
 def get_all_assets_summary(scenario: str, up_to_day: int | None = None) -> dict:
     """Compare every asset under one scenario in a single call.
 
@@ -121,6 +143,7 @@ def get_all_assets_summary(scenario: str, up_to_day: int | None = None) -> dict:
     return {"scenario": scenario, "assets": summaries}
 
 
+@_guard
 def list_scenarios() -> list[dict]:
     """The market regimes available to reason about."""
     return _get("/scenarios")
