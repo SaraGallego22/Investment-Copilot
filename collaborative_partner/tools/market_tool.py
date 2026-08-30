@@ -13,6 +13,7 @@ model gets the conclusions.
 
 from __future__ import annotations
 
+import time
 from functools import lru_cache
 
 import httpx
@@ -34,13 +35,29 @@ def _client() -> httpx.Client:
     )
 
 
+#: The service runs at min-instances=0, so the first call after an idle period
+#: wakes a cold container and can time out. Retrying once turns that into a
+#: pause instead of a failure — which matters most while recording the demo.
+COLD_START_RETRIES = 2
+COLD_START_BACKOFF_S = 1.5
+
+
 def _get(path: str, **params) -> dict:
-    try:
-        response = _client().get(path, params=params)
-    except httpx.HTTPError as exc:
+    last_error: Exception | None = None
+    for attempt in range(COLD_START_RETRIES):
+        try:
+            response = _client().get(path, params=params)
+            break
+        except httpx.HTTPError as exc:
+            # Only connection-level failures are retried; a 4xx is an answer.
+            last_error = exc
+            if attempt + 1 < COLD_START_RETRIES:
+                time.sleep(COLD_START_BACKOFF_S)
+    else:
         raise MarketUnavailable(
-            f"Cannot reach the market service at {steering.MARKET_API_URL}: {exc}"
-        ) from exc
+            f"Cannot reach the market service at {steering.MARKET_API_URL} "
+            f"after {COLD_START_RETRIES} attempts: {last_error}"
+        ) from last_error
 
     if response.status_code == 403:
         raise MarketUnavailable("Market service rejected the API key (403).")

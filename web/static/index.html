@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JUSARA</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a21; --line:#252b36; --text:#e6e9ef; --muted:#8b93a3;
+    --memory:#c084fc; --rag:#38bdf8; --market:#fbbf24; --down:#f87171; --up:#4ade80;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+       background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+  .app{display:grid;grid-template-columns:250px 1fr 380px;height:100vh}
+  .panel{border-right:1px solid var(--line);overflow-y:auto;padding:18px}
+  .panel:last-child{border-right:0;border-left:1px solid var(--line)}
+  h1{font-size:15px;letter-spacing:.14em;margin:0 0 4px}
+  .tag{font-size:11px;color:var(--muted);margin-bottom:22px}
+  h2{font-size:11px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;
+     margin:22px 0 9px;font-weight:600}
+  .user{padding:9px 11px;border:1px solid var(--line);border-radius:7px;margin-bottom:7px;
+        cursor:pointer;background:transparent;color:inherit;width:100%;text-align:left;font:inherit}
+  .user:hover{border-color:#3a4353}
+  .user[aria-selected="true"]{border-color:var(--memory);background:#1d1626}
+  .user b{display:block;text-transform:capitalize}
+  .user span{font-size:11px;color:var(--muted)}
+  select,input[type=range]{width:100%;margin-bottom:12px}
+  select{background:var(--panel);color:var(--text);border:1px solid var(--line);
+         border-radius:6px;padding:7px}
+  .chat{display:flex;flex-direction:column;height:100vh;padding:0}
+  .log{flex:1;overflow-y:auto;padding:22px}
+  .msg{max-width:82%;margin-bottom:16px;padding:12px 15px;border-radius:11px;white-space:pre-wrap}
+  .me{margin-left:auto;background:#1e2530}
+  .bot{background:var(--panel);border:1px solid var(--line)}
+  .bot h3{font-size:13px;margin:14px 0 6px}
+  .trace{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 3px}
+  .chip{font-size:10.5px;padding:2px 8px;border-radius:99px;border:1px solid}
+  .c-memory{color:var(--memory);border-color:#4c2f6b}
+  .c-rag{color:var(--rag);border-color:#1e4a63}
+  .c-market{color:var(--market);border-color:#5c4415}
+  .cite{font-size:11.5px;color:var(--muted);border-left:2px solid var(--rag);
+        padding-left:9px;margin-top:8px}
+  .cite a{color:var(--rag);text-decoration:none}
+  .composer{display:flex;gap:9px;padding:15px 22px;border-top:1px solid var(--line)}
+  textarea{flex:1;resize:none;background:var(--panel);color:var(--text);
+           border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;height:46px}
+  button.send{background:var(--memory);color:#12101a;border:0;border-radius:8px;
+              padding:0 20px;font-weight:600;cursor:pointer}
+  button.send:disabled{opacity:.45;cursor:default}
+  .kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;
+      border-bottom:1px solid #1c212a;font-size:12.5px}
+  .kv span:first-child{color:var(--muted)}
+  .pattern{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:9px}
+  .pattern.changed{border-color:var(--up);background:#12211a}
+  .pk{font-family:ui-monospace,monospace;font-size:11px;color:var(--memory)}
+  .bar{height:4px;background:#232936;border-radius:99px;margin:7px 0 6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--memory)}
+  .ev{font-size:11px;color:var(--muted);margin-top:5px;padding-left:11px;position:relative}
+  .ev::before{content:"·";position:absolute;left:2px}
+  .gap{font-size:12px;background:#1a1420;border:1px solid #3a2a4a;border-radius:8px;padding:10px}
+  .note{font-size:12px;background:#141c18;border:1px solid #274034;border-radius:8px;padding:10px}
+  .quiet{color:var(--muted);font-size:12px}
+  .flash{animation:flash 1.6s ease-out}
+  @keyframes flash{0%{background:#1b3326}100%{background:transparent}}
+  .disclaimer{font-size:10.5px;color:var(--muted);padding:9px 22px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── left: who and what market ────────────────────────────── -->
+  <div class="panel">
+    <h1>JUSARA</h1>
+    <div class="tag">perfil declarado vs. conducta observada</div>
+
+    <h2>Usuario</h2>
+    <div id="users"></div>
+
+    <h2>Escenario de mercado</h2>
+    <select id="scenario">
+      <option value="bull">bull — mercado alcista</option>
+      <option value="crash" selected>crash — desplome</option>
+      <option value="recovery">recovery — rebote</option>
+    </select>
+
+    <h2>Día <span id="dayLabel">60</span> / 89</h2>
+    <input type="range" id="day" min="0" max="89" value="60">
+    <div id="prices" class="quiet"></div>
+  </div>
+
+  <!-- ── centre: the conversation ─────────────────────────────── -->
+  <div class="chat">
+    <div class="log" id="log"></div>
+    <div class="composer">
+      <textarea id="input" placeholder="Escribe un mensaje…"></textarea>
+      <button class="send" id="send">Enviar</button>
+    </div>
+    <div class="disclaimer">
+      Proyecto educativo. Datos de mercado simulados. No es asesoramiento
+      financiero regulado; el agente nunca ejecuta operaciones.
+    </div>
+  </div>
+
+  <!-- ── right: memory, live ──────────────────────────────────── -->
+  <div class="panel" id="memoryPanel">
+    <h1 style="letter-spacing:.09em">MEMORIA</h1>
+    <div class="tag">lo que el agente sabe de esta persona</div>
+    <div id="profile" class="quiet">Selecciona un usuario.</div>
+  </div>
+
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let currentUser = null;
+let lastProfile = null;
+let busy = false;
+
+const SYSTEM_OF = {
+  get_user_profile:"memory", set_declared_profile:"memory", record_observation:"memory",
+  record_contradiction:"memory", record_correction:"memory", update_profile_synthesis:"memory",
+  retrieve_theory:"rag", retrieve_context:"rag",
+  get_market_snapshot:"market", get_all_assets_summary:"market", list_scenarios:"market",
+  project_portfolio:"market", compare_with_diversified:"market", selling_now_vs_holding:"market",
+};
+
+async function loadUsers(){
+  const users = await (await fetch("/api/users")).json();
+  $("users").innerHTML = users.map(u => `
+    <button class="user" data-user="${u.user_id}" aria-selected="false">
+      <b>${u.user_id}</b>
+      <span>declara ${u.declared_tolerance} · ${u.sessions_count} sesiones</span>
+    </button>`).join("");
+  document.querySelectorAll(".user").forEach(el =>
+    el.onclick = () => selectUser(el.dataset.user));
+  if (users.length) selectUser(users[0].user_id);
+}
+
+async function selectUser(userId){
+  currentUser = userId;
+  document.querySelectorAll(".user").forEach(el =>
+    el.setAttribute("aria-selected", String(el.dataset.user === userId)));
+  $("log").innerHTML = "";
+  lastProfile = null;
+  const profile = await (await fetch(`/api/profile/${userId}`)).json();
+  renderProfile(profile);
+}
+
+function renderProfile(p, changedKeys = []){
+  lastProfile = p;
+  const patterns = [...p.observed_patterns].sort((a,b) => b.confidence - a.confidence);
+  $("profile").innerHTML = `
+    <h2>Capa declarada</h2>
+    <div class="kv"><span>tolerancia</span><span>${p.declared_tolerance}</span></div>
+    <div class="kv"><span>horizonte</span><span>${p.horizon_years} años</span></div>
+    <div class="kv"><span>metas</span><span>${p.goals.join(", ") || "—"}</span></div>
+    <div class="kv"><span>sesiones</span><span>${p.sessions_count}</span></div>
+
+    <h2>Capa observada</h2>
+    ${patterns.map(pt => `
+      <div class="pattern ${changedKeys.includes(pt.key) ? "changed flash" : ""}">
+        <div class="pk">${pt.key}</div>
+        <div class="bar"><i style="width:${Math.round(pt.confidence*100)}%"></i></div>
+        <div class="quiet">confianza ${pt.confidence}</div>
+        <div style="margin-top:6px">${pt.pattern}</div>
+        ${pt.evidence.map(e => `<div class="ev">${e}</div>`).join("")}
+      </div>`).join("") || `<div class="quiet">Sin patrones todavía.</div>`}
+
+    <h2>La brecha</h2>
+    <div class="gap">${p.declared_observed_gap || "—"}</div>
+
+    <h2>Estrategia para la próxima sesión</h2>
+    <div class="note">${p.agent_strategy_note || "—"}</div>
+
+    ${p.corrections_received.length ? `<h2>Correcciones del usuario</h2>
+      ${p.corrections_received.map(c => `<div class="ev">${c}</div>`).join("")}` : ""}
+  `;
+}
+
+function diffKeys(before, after){
+  if (!before) return [];
+  const prior = Object.fromEntries(before.observed_patterns.map(p => [p.key, p.confidence]));
+  return after.observed_patterns
+    .filter(p => prior[p.key] === undefined || prior[p.key] !== p.confidence)
+    .map(p => p.key);
+}
+
+function bubble(cls, html){
+  const el = document.createElement("div");
+  el.className = `msg ${cls}`;
+  el.innerHTML = html;
+  $("log").appendChild(el);
+  $("log").scrollTop = $("log").scrollHeight;
+  return el;
+}
+
+async function send(){
+  const text = $("input").value.trim();
+  if (!text || !currentUser || busy) return;
+  busy = true; $("send").disabled = true;
+  $("input").value = "";
+
+  bubble("me", escapeHtml(text));
+  const thinking = bubble("bot", `<span class="quiet">pensando…</span>`);
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({user_id: currentUser, message: text}),
+    });
+    const data = await res.json();
+
+    const chips = [...new Set(data.tools_used)].map(t => {
+      const sys = SYSTEM_OF[t] || "tool";
+      return `<span class="chip c-${sys}">${sys} · ${t}</span>`;
+    }).join("");
+
+    const cites = [...new Map(data.citations.map(c => [c.source_org, c])).values()]
+      .map(c => `<div class="cite">${c.source_org}${c.section ? " — " + c.section : ""}
+        ${c.source_url ? `<a href="${c.source_url}" target="_blank" rel="noopener">↗</a>` : ""}</div>`)
+      .join("");
+
+    thinking.innerHTML =
+      `<div class="trace">${chips}</div>${markdown(data.reply)}${cites}`;
+
+    if (data.profile) renderProfile(data.profile, diffKeys(lastProfile, data.profile));
+  } catch (err) {
+    thinking.innerHTML = `<span style="color:var(--down)">Error: ${escapeHtml(String(err))}</span>`;
+  } finally {
+    busy = false; $("send").disabled = false;
+    $("log").scrollTop = $("log").scrollHeight;
+  }
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// Deliberately minimal: bold, headings and line breaks. Enough for the
+// agent's answers without pulling in a markdown library.
+function markdown(s){
+  return escapeHtml(s)
+    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.+)$/gm, "<h3>$1</h3>")
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/\*(.+?)\*/g, "<i>$1</i>")
+    .replace(/\n/g, "<br>");
+}
+
+async function loadPrices(){
+  const scenario = $("scenario").value;
+  const day = +$("day").value;
+  $("dayLabel").textContent = day;
+  const tickers = ["MARKET","TECHX","UTILCO","GOLDF"];
+  const rows = await Promise.all(tickers.map(async t => {
+    const body = await (await fetch(`/api/series/${t}?scenario=${scenario}`)).json();
+    const series = body.series;
+    const change = (series[day].price / series[0].price - 1) * 100;
+    const colour = change >= 0 ? "var(--up)" : "var(--down)";
+    return `<div class="kv"><span>${t}</span>
+      <span style="color:${colour}">${change >= 0 ? "+" : ""}${change.toFixed(1)}%</span></div>`;
+  }));
+  $("prices").innerHTML = rows.join("");
+}
+
+$("send").onclick = send;
+$("input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+$("scenario").onchange = loadPrices;
+$("day").oninput = loadPrices;
+
+loadUsers();
+loadPrices();
+</script>
+</body>
+</html>

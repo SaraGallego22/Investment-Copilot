@@ -18,24 +18,31 @@ This repository is mid-build for an Aug 31, 2026 deadline. Being precise about w
 | Area | Status |
 |---|---|
 | Design & research (`docs/`) | ✅ Complete — design doc, corpus sourcing, hackathon rules |
-| Foundation (config, deps, Docker) | ✅ Complete — `steering.py`, verified model ids |
-| Market Simulator API | ✅ **Live on Cloud Run** — 43 tests, deterministic |
-| Memory (declared + observed profile) | 🟡 Skeleton only — schema is the wrong shape, needs rewrite |
-| RAG (corpus + retriever) | 🟡 `load_documents()` works; ingest/retrieve raise `NotImplementedError`; corpus not yet fetched |
-| Agent loop, tools, prompts | 🟡 Flat agent stub, no domain, no reflection step |
-| CLI + Web UI | ⬜ Not started |
-| Cloud Run deployment | ⬜ Not started |
+| Foundation (config, deps, Docker) | ✅ `steering.py`, verified model ids |
+| Market Simulator API | ✅ **Live on Cloud Run** — deterministic, 43 tests |
+| Memory (declared + observed profile) | ✅ Two layers, reinforce/weaken, JSON + Firestore |
+| RAG (corpus + retriever) | ✅ 17 documents, 233 chunks, cited retrieval |
+| Agent loop, tools, prompts | ✅ Both agents, 13 tools, reflection step |
+| CLI + Web UI | ✅ `cli.py` + three-panel page |
+| Cloud Run deployment | ✅ **Both services live** |
+| Demo script & architecture doc | ⬜ In progress |
 
 The sections below describe the system being built. Anything marked ⬜ or 🟡 above is not runnable yet.
 
-**Live now:** the market simulator is deployed and reachable.
+**Live now** — both services are deployed on Cloud Run:
+
+| Service | URL |
+|---|---|
+| Agent + web UI | https://jusara-agent-904662129922.us-central1.run.app |
+| Market simulator | https://jusara-market-api-904662129922.us-central1.run.app |
 
 ```bash
-curl https://jusara-market-api-904662129922.us-central1.run.app/health
-# {"status":"ok","scenarios":["bull","crash","recovery"],"days":90}
+curl https://jusara-agent-904662129922.us-central1.run.app/api/health
+# {"status":"ok","model":"gemini-3.5-flash","backend":"firestore"}
 ```
 
-Data endpoints need an `X-API-Key`; `/health` does not.
+Open the agent URL to talk to it. The market simulator's data endpoints need an
+`X-API-Key`; `/health` does not.
 
 ---
 
